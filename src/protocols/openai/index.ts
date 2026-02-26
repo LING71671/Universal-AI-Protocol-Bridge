@@ -278,6 +278,7 @@ export function serializeOpenAIResponse(canonical: CanonicalResponse): Response 
 export function createOpenAIInboundStreamTransformer(): TransformStream<Uint8Array, CanonicalStreamEvent> {
   let inputTokens = 0;
   let messageId = '';
+  let hasTextBlock = false;
 
   const sseDecoder = createSSEDecoder();
   const mapper = new TransformStream<import('../../streaming/adapters/sse.js').SSEEvent, CanonicalStreamEvent>({
@@ -302,14 +303,21 @@ export function createOpenAIInboundStreamTransformer(): TransformStream<Uint8Arr
       const finishReason = choice['finish_reason'] as string | null;
 
       if (delta?.['content']) {
+        hasTextBlock = true;
         controller.enqueue({ type: 'text_delta', index: 0, text: delta['content'] as string });
       }
 
       const toolCalls = delta?.['tool_calls'] as Array<Record<string, unknown>> | undefined;
       if (toolCalls) {
         for (const tc of toolCalls) {
-          const idx = tc['index'] as number ?? 0;
+          // Offset tool call indices by 1 when a text block exists at index 0
+          const idx = (tc['index'] as number ?? 0) + (hasTextBlock ? 1 : 0);
           if (tc['id']) {
+            // Close the text block before opening the first tool call (sequential blocks)
+            if (hasTextBlock) {
+              controller.enqueue({ type: 'tool_call_end', index: 0 });
+              hasTextBlock = false;
+            }
             const fn = tc['function'] as Record<string, string> | undefined;
             controller.enqueue({ type: 'tool_call_start', index: idx, id: tc['id'] as string, name: fn?.['name'] ?? '' });
           }

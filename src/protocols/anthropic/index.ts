@@ -244,7 +244,7 @@ export function createAnthropicInboundStreamTransformer(): TransformStream<Uint8
 
 export function createAnthropicOutboundStreamTransformer(model: string, messageId: string): TransformStream<CanonicalStreamEvent, Uint8Array> {
   let inputTokens = 0;
-  const activeBlocks = new Set<number>();
+  const activeBlocks = new Map<number, 'text' | 'tool_use' | 'thinking'>();
 
   return new TransformStream<CanonicalStreamEvent, Uint8Array>({
     transform(event, controller) {
@@ -254,19 +254,21 @@ export function createAnthropicOutboundStreamTransformer(model: string, messageI
         controller.enqueue(formatSSE('ping', { type: 'ping' }));
       } else if (event.type === 'text_delta') {
         if (!activeBlocks.has(event.index)) {
-          activeBlocks.add(event.index);
+          activeBlocks.set(event.index, 'text');
           controller.enqueue(formatSSE('content_block_start', { type: 'content_block_start', index: event.index, content_block: { type: 'text', text: '' } }));
         }
         controller.enqueue(formatSSE('content_block_delta', { type: 'content_block_delta', index: event.index, delta: { type: 'text_delta', text: event.text } }));
       } else if (event.type === 'thinking_delta') {
         if (!activeBlocks.has(event.index)) {
-          activeBlocks.add(event.index);
+          activeBlocks.set(event.index, 'thinking');
           controller.enqueue(formatSSE('content_block_start', { type: 'content_block_start', index: event.index, content_block: { type: 'thinking', thinking: '' } }));
         }
         controller.enqueue(formatSSE('content_block_delta', { type: 'content_block_delta', index: event.index, delta: { type: 'thinking_delta', thinking: event.thinking } }));
       } else if (event.type === 'tool_call_start') {
-        activeBlocks.add(event.index);
-        controller.enqueue(formatSSE('content_block_start', { type: 'content_block_start', index: event.index, content_block: { type: 'tool_use', id: event.id, name: event.name, input: {} } }));
+        if (!activeBlocks.has(event.index)) {
+          activeBlocks.set(event.index, 'tool_use');
+          controller.enqueue(formatSSE('content_block_start', { type: 'content_block_start', index: event.index, content_block: { type: 'tool_use', id: event.id, name: event.name, input: {} } }));
+        }
       } else if (event.type === 'tool_call_delta') {
         controller.enqueue(formatSSE('content_block_delta', { type: 'content_block_delta', index: event.index, delta: { type: 'input_json_delta', partial_json: event.argumentsChunk } }));
       } else if (event.type === 'tool_call_end') {
@@ -276,7 +278,7 @@ export function createAnthropicOutboundStreamTransformer(model: string, messageI
         controller.enqueue(formatSSE('error', { type: 'error', error: { type: 'api_error', message: event.message } }));
       } else if (event.type === 'message_end') {
         // Close any remaining open blocks
-        for (const idx of activeBlocks) {
+        for (const idx of activeBlocks.keys()) {
           controller.enqueue(formatSSE('content_block_stop', { type: 'content_block_stop', index: idx }));
         }
         const STOP_MAP: Record<string, string> = { end_turn: 'end_turn', tool_use: 'tool_use', max_tokens: 'max_tokens', stop_sequence: 'stop_sequence', error: 'end_turn' };
