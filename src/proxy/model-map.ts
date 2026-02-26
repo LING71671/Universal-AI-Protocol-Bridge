@@ -23,6 +23,13 @@ export function resolveModel(
   forceModel?: string
 ): string {
   if (forceModel) return forceModel;
+  // Normalize: strip trailing [...] suffixes (e.g. "[1m]" appended by Claude Code for 1M-context variants)
+  const normalizedModel = requestedModel.replace(/\[.*?\]$/, '').trim();
+  if (userModelMap?.[normalizedModel]) return userModelMap[normalizedModel]!;
   if (userModelMap?.[requestedModel]) return userModelMap[requestedModel]!;
-  return requestedModel; // pass through unchanged
+  // Fall back to built-in default map
+  const defaultMap = DEFAULT_MODEL_MAP[targetProtocol];
+  if (defaultMap?.[normalizedModel]) return defaultMap[normalizedModel]!;
+  if (defaultMap?.[requestedModel]) return defaultMap[requestedModel]!;
+  return requestedModel;
 }

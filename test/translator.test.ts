@@ -3,6 +3,7 @@ import { parseAnthropicRequest, serializeAnthropicRequest, parseAnthropicRespons
 import { parseOpenAIRequest, serializeOpenAIRequest, parseOpenAIResponse } from '../src/protocols/openai/index.js';
 import { parseGeminiRequest, parseGeminiResponse } from '../src/protocols/gemini/index.js';
 import type { ProxyConfig } from '../src/config/types.js';
+import { resolveModel } from '../src/proxy/model-map.js';
 
 const openAIConfig: ProxyConfig = {
   version: 1, sourceProtocol: 'anthropic', targetProtocol: 'openai',
@@ -138,6 +139,57 @@ describe('OpenAI response → Canonical', () => {
   });
 });
 
+// ── OpenAI URL normalization ─────────────────────────────────────────────────
+
+describe('OpenAI URL normalization', () => {
+  it('appends /v1 when missing', () => {
+    const config: ProxyConfig = {
+      version: 1, sourceProtocol: 'anthropic', targetProtocol: 'openai',
+      targetBaseUrl: 'https://integrate.api.nvidia.com',
+      auth: { type: 'bearer', token: 'test' },
+    };
+    const canonical = parseAnthropicRequest({
+      model: 'test', max_tokens: 100, messages: [{ role: 'user', content: 'Hi' }], stream: false,
+    });
+    const { url } = serializeOpenAIRequest(canonical, config);
+    expect(url).toBe('https://integrate.api.nvidia.com/v1/chat/completions');
+  });
+
+  it('preserves /v1 when already present', () => {
+    const canonical = parseAnthropicRequest({
+      model: 'test', max_tokens: 100, messages: [{ role: 'user', content: 'Hi' }], stream: false,
+    });
+    const { url } = serializeOpenAIRequest(canonical, openAIConfig);
+    expect(url).toBe('https://api.openai.com/v1/chat/completions');
+  });
+
+  it('preserves custom path prefix with version', () => {
+    const config: ProxyConfig = {
+      version: 1, sourceProtocol: 'anthropic', targetProtocol: 'openai',
+      targetBaseUrl: 'https://api.groq.com/openai/v1',
+      auth: { type: 'bearer', token: 'test' },
+    };
+    const canonical = parseAnthropicRequest({
+      model: 'test', max_tokens: 100, messages: [{ role: 'user', content: 'Hi' }], stream: false,
+    });
+    const { url } = serializeOpenAIRequest(canonical, config);
+    expect(url).toBe('https://api.groq.com/openai/v1/chat/completions');
+  });
+
+  it('strips trailing slash before normalizing', () => {
+    const config: ProxyConfig = {
+      version: 1, sourceProtocol: 'anthropic', targetProtocol: 'openai',
+      targetBaseUrl: 'https://api.openai.com/v1/',
+      auth: { type: 'bearer', token: 'test' },
+    };
+    const canonical = parseAnthropicRequest({
+      model: 'test', max_tokens: 100, messages: [{ role: 'user', content: 'Hi' }], stream: false,
+    });
+    const { url } = serializeOpenAIRequest(canonical, config);
+    expect(url).toBe('https://api.openai.com/v1/chat/completions');
+  });
+});
+
 // ── Gemini ────────────────────────────────────────────────────────────────────
 
 describe('Gemini → Canonical', () => {
@@ -160,5 +212,32 @@ describe('Gemini → Canonical', () => {
     });
     expect(res.content[0]).toEqual({ type: 'text', text: 'Hi there!' });
     expect(res.stopReason).toBe('end_turn');
+  });
+});
+
+// ── resolveModel ──────────────────────────────────────────────────────────────
+
+describe('resolveModel', () => {
+  it('uses DEFAULT_MODEL_MAP when no userModelMap provided', () => {
+    expect(resolveModel('claude-sonnet-4-6', 'openai')).toBe('gpt-4o-mini');
+    expect(resolveModel('claude-opus-4-6', 'openai')).toBe('gpt-4o');
+    expect(resolveModel('claude-sonnet-4-6', 'gemini')).toBe('gemini-2.0-flash');
+  });
+
+  it('strips [1m] suffix before looking up DEFAULT_MODEL_MAP', () => {
+    expect(resolveModel('claude-sonnet-4-6[1m]', 'openai')).toBe('gpt-4o-mini');
+    expect(resolveModel('claude-opus-4-6[1m]', 'openai')).toBe('gpt-4o');
+  });
+
+  it('userModelMap takes priority over DEFAULT_MODEL_MAP', () => {
+    expect(resolveModel('claude-sonnet-4-6', 'openai', { 'claude-sonnet-4-6': 'gpt-4-turbo' })).toBe('gpt-4-turbo');
+  });
+
+  it('forceModel takes priority over everything', () => {
+    expect(resolveModel('claude-sonnet-4-6[1m]', 'openai', undefined, 'my-custom-model')).toBe('my-custom-model');
+  });
+
+  it('passes through unknown models unchanged', () => {
+    expect(resolveModel('some-unknown-model', 'openai')).toBe('some-unknown-model');
   });
 });

@@ -116,6 +116,13 @@ function parseOpenAITool(t: Record<string, unknown>): CanonicalToolDefinition {
 
 // ── Outbound (Canonical → OpenAI) ─────────────────────────────────────────────
 
+/** Ensure the base URL includes a version prefix (e.g. /v1) for OpenAI-compatible APIs */
+function normalizeOpenAIBaseUrl(baseUrl: string): string {
+  const url = baseUrl.replace(/\/+$/, '');
+  if (/\/v\d+$/.test(url)) return url;
+  return `${url}/v1`;
+}
+
 export function serializeOpenAIRequest(canonical: CanonicalRequest, config: ProxyConfig): SerializedRequest {
   const messages: unknown[] = [];
 
@@ -148,7 +155,8 @@ export function serializeOpenAIRequest(canonical: CanonicalRequest, config: Prox
   if (canonical.temperature != null) body['temperature'] = canonical.temperature;
   if (canonical.topP != null) body['top_p'] = canonical.topP;
   if (canonical.stopSequences?.length) body['stop'] = canonical.stopSequences;
-  if (tools?.length) { body['tools'] = tools; body['tool_choice'] = toolChoice ?? 'auto'; }
+  if (tools?.length) body['tools'] = tools;
+  if (toolChoice !== undefined) body['tool_choice'] = toolChoice;
   if (canonical.stream) body['stream_options'] = { include_usage: true };
 
   const auth = config.auth;
@@ -156,7 +164,7 @@ export function serializeOpenAIRequest(canonical: CanonicalRequest, config: Prox
   if (auth.type === 'bearer') headers['Authorization'] = `Bearer ${auth.token}`;
 
   return {
-    url: `${config.targetBaseUrl}/chat/completions`,
+    url: `${normalizeOpenAIBaseUrl(config.targetBaseUrl)}/chat/completions`,
     body,
     headers,
   };
@@ -339,6 +347,9 @@ export function createOpenAIOutboundStreamTransformer(model: string, messageId: 
         controller.enqueue(formatSSE(undefined, { id: messageId, object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000), model, choices: [{ index: 0, delta: { tool_calls: [{ index: blockIndex, id: event.id, type: 'function', function: { name: event.name, arguments: '' } }] }, finish_reason: null }] }));
       } else if (event.type === 'tool_call_delta') {
         controller.enqueue(formatSSE(undefined, { id: messageId, object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000), model, choices: [{ index: 0, delta: { tool_calls: [{ index: event.index, function: { arguments: event.argumentsChunk } }] }, finish_reason: null }] }));
+      } else if (event.type === 'error') {
+        controller.enqueue(formatSSE(undefined, { error: { message: event.message, type: 'server_error', code: event.code ?? null } }));
+        controller.enqueue(formatSSEDone());
       } else if (event.type === 'message_end') {
         const STOP_MAP: Record<string, string> = { end_turn: 'stop', tool_use: 'tool_calls', max_tokens: 'length', stop_sequence: 'stop', error: 'stop' };
         controller.enqueue(formatSSE(undefined, { id: messageId, object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000), model, choices: [{ index: 0, delta: {}, finish_reason: STOP_MAP[event.stopReason] ?? 'stop' }], usage: { prompt_tokens: inputTokens, completion_tokens: event.outputTokens, total_tokens: inputTokens + event.outputTokens } }));

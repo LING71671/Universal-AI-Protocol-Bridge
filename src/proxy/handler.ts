@@ -52,7 +52,7 @@ export async function handleProxyRequest(
     body: JSON.stringify(serialized.body),
   });
 
-  if (!upstreamResponse.ok && !canonical.stream) {
+  if (!upstreamResponse.ok) {
     const errBody = await upstreamResponse.text();
     return new Response(errBody, { status: upstreamResponse.status, headers: { 'Content-Type': 'application/json' } });
   }

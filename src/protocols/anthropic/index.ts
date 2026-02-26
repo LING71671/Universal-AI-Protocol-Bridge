@@ -272,6 +272,8 @@ export function createAnthropicOutboundStreamTransformer(model: string, messageI
       } else if (event.type === 'tool_call_end') {
         controller.enqueue(formatSSE('content_block_stop', { type: 'content_block_stop', index: event.index }));
         activeBlocks.delete(event.index);
+      } else if (event.type === 'error') {
+        controller.enqueue(formatSSE('error', { type: 'error', error: { type: 'api_error', message: event.message } }));
       } else if (event.type === 'message_end') {
         // Close any remaining open blocks
         for (const idx of activeBlocks) {

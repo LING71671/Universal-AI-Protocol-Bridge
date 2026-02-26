@@ -6,7 +6,10 @@
       "WebFetch(domain:ai.google.dev)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:docs.mistral.ai)",
-      "WebFetch(domain:docs.cohere.com)"
+      "WebFetch(domain:docs.cohere.com)",
+      "Bash(npm test)",
+      "Bash(npm test -- --run)",
+      "Bash(git stash)"
     ]
   }
 }
