@@ -1,0 +1,7 @@
+name = "universal-ai-protocol-bridge"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# WORKER_SECRET must be set via: wrangler secret put WORKER_SECRET
+# Never store secrets in this file
