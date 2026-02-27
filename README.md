@@ -22,7 +22,7 @@
 - **动态协议转换**: 自动处理不同供应商之间的请求体（Request Body）、响应格式（Response Format）以及认证 Headers 的差异。
 - **流式传输 (Streaming) 优化**: 针对 Server-Sent Events (SSE) 和 NDJSON 进行了深度优化，全程支持流式管道化输出，确保极致的响应速度。
 - **智能模型映射 (Model Mapping)**:
-  - 支持别名配置（例如将 `gpt-4` 映射到 `claude-3-5-sonnet-latest`）
+  - 支持别名配置（推荐）（例如将 `gpt-4` 映射到 `claude-3-5-sonnet-latest`）
   - 支持强制模型（Force Model）模式，确保请求始终打到预期的模型
 - **安全加固 (Security First)**:
   - 使用 Web Crypto API 实现 AES-GCM 工业级加密
