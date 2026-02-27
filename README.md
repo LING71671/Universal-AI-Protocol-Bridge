@@ -2,7 +2,7 @@
 
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/LING71671/Universal-AI-Protocol-Bridge)
 
-**Universal AI Protocol Bridge** 是一个基于 Cloudflare Workers 构建的高性能、轻量级 AI 协议转换网关。它可以无缝地将一种 AI 供应商的 API 协议转换为另一种（例如：使用 OpenAI SDK 调用 Anthropic Claude 3.5 或 Google Gemini Pro）。
+**Universal AI Protocol Bridge** 是一个基于 Cloudflare Workers 构建的高性能、轻量级 AI 协议转换网关。它可以无缝地将一种 AI 供应商的 API 协议转换为另一种（例如：使用 OpenAI SDK 调用 Anthropic Claude 或 Google Gemini Pro）。
 
 ## 🌐 在线测试地址
 
@@ -21,28 +21,44 @@
   - **Cohere** & **Mistral**
 - **动态协议转换**: 自动处理不同供应商之间的请求体（Request Body）、响应格式（Response Format）以及认证 Headers 的差异。
 - **流式传输 (Streaming) 优化**: 针对 Server-Sent Events (SSE) 和 NDJSON 进行了深度优化，全程支持流式管道化输出，确保极致的响应速度。
-- **智能模型映射 (Model Mapping)**: 
-  - 支持别名配置（例如将 `gpt-4` 映射到 `claude-3-5-sonnet-latest`）。（推荐）
-  - 支持强制模型（Force Model）模式，确保请求始终打到预期的模型。
-- **安全加固 (Security First)**: 
-  - 使用 Web Crypto API 实现 AES-GCM 工业级加密。
-  - 代理配置被封装在加密 Token 中，不在 Worker 侧存储任何敏感 Key。
-- **自适应前端**: 内置基于 Vue/Tailwind 风格的 Web 管理界面，支持直观地配置协议、生成代理 URL 和管理 Token。
+- **智能模型映射 (Model Mapping)**:
+  - 支持别名配置（例如将 `gpt-4` 映射到 `claude-3-5-sonnet-latest`）
+  - 支持强制模型（Force Model）模式，确保请求始终打到预期的模型
+- **安全加固 (Security First)**:
+  - 使用 Web Crypto API 实现 AES-GCM 工业级加密
+  - 代理配置被封装在加密 Token 中，不在 Worker 侧存储任何敏感 Key
+- **自适应前端**: 内置基于 Vue/Tailwind 风格的 Web 管理界面，支持直观地配置协议、生成代理 URL 和管理 Token
+- **零存储架构**: 所有配置均通过加密 Token 传递，Worker 端无需持久化存储
 
 ## 🛠 技术架构
 
 - **Runtime**: Cloudflare Workers (V8 Engine)
 - **Language**: TypeScript (Strict Mode)
-- **Bundler**: Wrangler
-- **Crypto**: Web Crypto API (SubtleCrypto)
-- **Streaming**: TransformStream Logic
+- **Bundler**: Wrangler 2 / Vite
+- **Crypto**: Web Crypto API (SubtleCrypto, AES-GCM)
+- **Streaming**: TransformStream (SSE, NDJSON, AWS Binary Events)
+
+### 项目结构
+
+```
+src/
+├── canonical/          # 标准格式定义 (CanonicalRequest/Response/StreamEvent)
+├── config/             # 配置类型与加密/解密 (crypto.ts)
+├── protocols/          # 各协议适配器 (anthropic, openai, gemini 等)
+├── proxy/              # 代理核心逻辑 (handler.ts, model-map.ts)
+├── streaming/          # 流式传输适配器 (SSE, JSON Lines, Bedrock Events)
+├── ui/                 # Web 管理界面 (handler, template, config-generator)
+└── index.ts            # Worker 入口点
+```
 
 ## 🚀 快速启动
 
 ### 方式一：一键部署 (推荐)
+
 点击上方的 "Deploy to Cloudflare Workers" 按钮。
 
 ### 方式二：手动部署
+
 1. **获取代码并安装依赖**:
    ```bash
    git clone https://github.com/LING71671/Universal-AI-Protocol-Bridge.git
@@ -61,12 +77,20 @@
    npm run deploy
    ```
 
-## � 使用说明
+## 📖 使用说明
 
 1. **生成代理 URL**: 访问您的部署域名或 [测试地址](https://apibridge.071.cc.cd/)。
 2. **选择协议**: 填入目标供应商（如 Anthropic）和您的 API Key。
 3. **获取 Token**: 点击生成按钮，系统将为你创建一个包含加密配置的专属 Endpoint。
 4. **集成**: 将您的应用中的 `baseURL` 替换为生成的代理 URL 即可。
+
+### URL 格式
+
+```
+/proxy/{encrypted_token}/{upstream_path}
+```
+
+Token = AES-GCM(ProxyConfig JSON, HKDF(WORKER_SECRET))
 
 ## 🧪 研发、测试与风格
 
