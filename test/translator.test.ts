@@ -241,3 +241,90 @@ describe('resolveModel', () => {
     expect(resolveModel('some-unknown-model', 'openai')).toBe('some-unknown-model');
   });
 });
+
+// ── tool_result role mapping ─────────────────────────────────────────────────
+
+describe('Anthropic tool_result → Canonical role mapping', () => {
+  it('converts user message with tool_result to role: tool', () => {
+    const req = parseAnthropicRequest({
+      model: 'claude-sonnet-4-6', max_tokens: 1024,
+      messages: [
+        { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'tu_1', content: 'file content here' }] },
+      ],
+      stream: false,
+    });
+    expect(req.messages[0]?.role).toBe('tool');
+    expect(req.messages[0]?.content[0]?.type).toBe('tool_result');
+  });
+
+  it('preserves user role for normal text messages', () => {
+    const req = parseAnthropicRequest({
+      model: 'claude-sonnet-4-6', max_tokens: 1024,
+      messages: [{ role: 'user', content: 'Hello' }],
+      stream: false,
+    });
+    expect(req.messages[0]?.role).toBe('user');
+  });
+});
+
+describe('End-to-end tool_result: Anthropic → OpenAI', () => {
+  it('tool_result content is preserved through translation', () => {
+    const canonical = parseAnthropicRequest({
+      model: 'claude-sonnet-4-6', max_tokens: 1024,
+      messages: [
+        { role: 'assistant', content: [{ type: 'tool_use', id: 'tu_1', name: 'Read', input: { file_path: '/test.txt' } }] },
+        { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'tu_1', content: 'Hello World' }] },
+      ],
+      stream: false,
+    });
+    const { body } = serializeOpenAIRequest(canonical, openAIConfig);
+    const msgs = (body as Record<string, unknown>)['messages'] as Array<Record<string, unknown>>;
+    const toolMsg = msgs.find(m => m['role'] === 'tool');
+    expect(toolMsg).toBeDefined();
+    expect(toolMsg?.['content']).toBe('Hello World');
+    expect(toolMsg?.['tool_call_id']).toBe('tu_1');
+  });
+});
+
+// ── system prompt array format ───────────────────────────────────────────────
+
+describe('Anthropic system prompt formats', () => {
+  it('parses string system prompt', () => {
+    const req = parseAnthropicRequest({
+      model: 'x', max_tokens: 100, messages: [], stream: false,
+      system: 'Be helpful',
+    });
+    expect(req.systemPrompt).toBe('Be helpful');
+  });
+
+  it('parses array system prompt (Claude Code format)', () => {
+    const req = parseAnthropicRequest({
+      model: 'x', max_tokens: 100, messages: [], stream: false,
+      system: [
+        { type: 'text', text: 'You are a coding assistant.' },
+        { type: 'text', text: 'Be concise.' },
+      ],
+    });
+    expect(req.systemPrompt).toBe('You are a coding assistant.\nBe concise.');
+  });
+});
+
+// ── JSON parsing resilience ──────────────────────────────────────────────────
+
+describe('OpenAI JSON parsing resilience', () => {
+  it('handles invalid tool_call arguments gracefully', () => {
+    const req = parseOpenAIRequest({
+      model: 'gpt-4o',
+      messages: [{
+        role: 'assistant',
+        content: null,
+        tool_calls: [{ id: 'call_1', type: 'function', function: { name: 'test', arguments: 'invalid json{' } }],
+      }],
+    });
+    const part = req.messages[0]?.content[0];
+    expect(part?.type).toBe('tool_call');
+    if (part?.type === 'tool_call') {
+      expect(part.arguments).toEqual({});
+    }
+  });
+});

@@ -27,10 +27,25 @@ export function parseAnthropicRequest(body: unknown): CanonicalRequest {
   else if (tc?.['type'] === 'any') toolChoice = { type: 'required' as const };
   else if (tc?.['type'] === 'tool') toolChoice = { type: 'specific' as const, name: tc['name'] as string };
 
+  // system can be a string or an array of content blocks (Claude Code sends arrays with cache_control)
+  const rawSystem = b['system'];
+  const systemPrompt = typeof rawSystem === 'string'
+    ? rawSystem
+    : Array.isArray(rawSystem)
+      ? (rawSystem as Array<Record<string, string>>).map(s => s['text']).filter(Boolean).join('\n')
+      : undefined;
+
+  // Collect unrecognized fields for passthrough (e.g. thinking, betas, etc.)
+  const KNOWN_KEYS = new Set(['model', 'messages', 'system', 'max_tokens', 'temperature', 'top_p', 'top_k', 'stop_sequences', 'stream', 'tools', 'tool_choice', 'metadata']);
+  const extensions: Record<string, unknown> = {};
+  for (const key of Object.keys(b)) {
+    if (!KNOWN_KEYS.has(key)) extensions[key] = b[key];
+  }
+
   return {
     model: b['model'] as string ?? '',
     messages,
-    systemPrompt: b['system'] as string | undefined,
+    systemPrompt,
     maxTokens: b['max_tokens'] as number | undefined,
     temperature: b['temperature'] as number | undefined,
     topP: b['top_p'] as number | undefined,
@@ -40,6 +55,7 @@ export function parseAnthropicRequest(body: unknown): CanonicalRequest {
     tools,
     toolChoice,
     userId: (b['metadata'] as Record<string, string> | undefined)?.['user_id'],
+    extensions: Object.keys(extensions).length ? extensions : undefined,
   };
 }
 
@@ -70,7 +86,10 @@ function parseAnthropicMessage(msg: Record<string, unknown>): CanonicalMessage {
     }
   }
 
-  return { role, content };
+  // Anthropic sends tool results as user messages with tool_result blocks;
+  // canonical format uses 'tool' role so outbound serializers handle them correctly
+  const hasToolResult = content.some(p => p.type === 'tool_result');
+  return { role: hasToolResult ? 'tool' : role, content };
 }
 
 // ── Outbound (Canonical → Anthropic) ─────────────────────────────────────────
@@ -108,6 +127,8 @@ export function serializeAnthropicRequest(canonical: CanonicalRequest, config: P
   if (canonical.stopSequences?.length) body['stop_sequences'] = canonical.stopSequences;
   if (tools?.length) { body['tools'] = tools; body['tool_choice'] = toolChoice ?? { type: 'auto' }; }
   if (canonical.userId) body['metadata'] = { user_id: canonical.userId };
+  // Pass through any extension fields (thinking, betas, etc.)
+  if (canonical.extensions) Object.assign(body, canonical.extensions);
 
   const auth = config.auth;
   const headers: Record<string, string> = {
@@ -258,7 +279,7 @@ export function createAnthropicOutboundStreamTransformer(model: string, messageI
     transform(event, controller) {
       if (event.type === 'message_start') {
         inputTokens = event.inputTokens;
-        controller.enqueue(formatSSE('message_start', { type: 'message_start', message: { id: messageId, type: 'message', role: 'assistant', content: [], model, stop_reason: null, stop_sequence: null, usage: { input_tokens: inputTokens, output_tokens: 1 } } }));
+        controller.enqueue(formatSSE('message_start', { type: 'message_start', message: { id: messageId, type: 'message', role: 'assistant', content: [], model, stop_reason: null, stop_sequence: null, usage: { input_tokens: inputTokens, output_tokens: 0 } } }));
         controller.enqueue(formatSSE('ping', { type: 'ping' }));
       } else if (event.type === 'text_delta') {
         if (!activeBlocks.has(event.index)) {

@@ -75,7 +75,8 @@ function parseGeminiContent(content: Record<string, unknown>): CanonicalMessage 
     }
   }
 
-  return { role, content: canonicalContent };
+  const hasToolResult = canonicalContent.some(p => p.type === 'tool_result');
+  return { role: hasToolResult ? 'tool' : role, content: canonicalContent };
 }
 
 function normalizeGeminiSchema(schema: Record<string, unknown>): CanonicalToolDefinition['parameters'] {

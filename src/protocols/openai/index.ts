@@ -72,11 +72,13 @@ function parseOpenAIMessage(msg: Record<string, unknown>): CanonicalMessage {
     if (toolCalls) {
       for (const tc of toolCalls) {
         const fn = tc['function'] as Record<string, string>;
+        let args: Record<string, unknown>;
+        try { args = JSON.parse(fn['arguments'] ?? '{}'); } catch { args = {}; }
         content.push({
           type: 'tool_call',
           id: (tc['id'] as string) ?? '',
           name: fn['name'] ?? '',
-          arguments: JSON.parse(fn['arguments'] ?? '{}'),
+          arguments: args,
         });
       }
     }
@@ -229,7 +231,9 @@ export function parseOpenAIResponse(body: unknown): CanonicalResponse {
   if (toolCalls) {
     for (const tc of toolCalls) {
       const fn = tc['function'] as Record<string, string>;
-      content.push({ type: 'tool_call', id: tc['id'] as string, name: fn['name'] ?? '', arguments: JSON.parse(fn['arguments'] ?? '{}') });
+      let args: Record<string, unknown>;
+      try { args = JSON.parse(fn['arguments'] ?? '{}'); } catch { args = {}; }
+      content.push({ type: 'tool_call', id: tc['id'] as string, name: fn['name'] ?? '', arguments: args });
     }
   }
 
