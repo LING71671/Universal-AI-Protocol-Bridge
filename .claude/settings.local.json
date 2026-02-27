@@ -10,7 +10,8 @@
       "Bash(npm test)",
       "Bash(npm test -- --run)",
       "Bash(git stash)",
-      "Bash(cmd.exe /c dir \"b:\\\\Universal-AI-Protocol-Bridge\\\\\")"
+      "Bash(cmd.exe /c dir \"b:\\\\Universal-AI-Protocol-Bridge\\\\\")",
+      "Bash(npx vitest run)"
     ]
   }
 }
