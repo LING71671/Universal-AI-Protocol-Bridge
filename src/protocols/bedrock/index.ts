@@ -63,6 +63,7 @@ export function serializeBedrockRequest(canonical: CanonicalRequest, config: Pro
 
 export function createBedrockInboundStreamTransformer(): TransformStream<Uint8Array, CanonicalStreamEvent> {
   const eventDecoder = createBedrockEventStreamDecoder();
+  const blockTypes = new Map<number, string>();
   const mapper = new TransformStream<import('../../streaming/adapters/bedrock-events.js').BedrockEvent, CanonicalStreamEvent>({
     transform(event, controller) {
       if (event.eventType === 'chunk') {
@@ -79,8 +80,10 @@ export function createBedrockInboundStreamTransformer(): TransformStream<Uint8Ar
           controller.enqueue({ type: 'message_start', id: msg['id'] as string, model: msg['model'] as string ?? '', inputTokens: usage['input_tokens'] ?? 0 });
         } else if (type === 'content_block_start') {
           const block = parsed['content_block'] as Record<string, unknown>;
+          const index = parsed['index'] as number;
+          blockTypes.set(index, block['type'] as string);
           if (block['type'] === 'tool_use') {
-            controller.enqueue({ type: 'tool_call_start', index: parsed['index'] as number, id: block['id'] as string, name: block['name'] as string });
+            controller.enqueue({ type: 'tool_call_start', index, id: block['id'] as string, name: block['name'] as string });
           }
         } else if (type === 'content_block_delta') {
           const delta = parsed['delta'] as Record<string, unknown>;
@@ -88,7 +91,14 @@ export function createBedrockInboundStreamTransformer(): TransformStream<Uint8Ar
           if (delta['type'] === 'text_delta') controller.enqueue({ type: 'text_delta', index, text: delta['text'] as string });
           else if (delta['type'] === 'input_json_delta') controller.enqueue({ type: 'tool_call_delta', index, argumentsChunk: delta['partial_json'] as string });
         } else if (type === 'content_block_stop') {
-          controller.enqueue({ type: 'tool_call_end', index: parsed['index'] as number });
+          const index = parsed['index'] as number;
+          const blockType = blockTypes.get(index);
+          if (blockType === 'tool_use') {
+            controller.enqueue({ type: 'tool_call_end', index });
+          } else {
+            controller.enqueue({ type: 'content_block_end', index });
+          }
+          blockTypes.delete(index);
         } else if (type === 'message_delta') {
           const delta = parsed['delta'] as Record<string, unknown>;
           const usage = parsed['usage'] as Record<string, number> ?? {};

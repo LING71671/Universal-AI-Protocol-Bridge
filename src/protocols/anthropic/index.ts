@@ -203,6 +203,7 @@ export function serializeAnthropicResponse(canonical: CanonicalResponse): Respon
 
 export function createAnthropicInboundStreamTransformer(): TransformStream<Uint8Array, CanonicalStreamEvent> {
   const sseDecoder = createSSEDecoder();
+  const blockTypes = new Map<number, string>();
   const mapper = new TransformStream<import('../../streaming/adapters/sse.js').SSEEvent, CanonicalStreamEvent>({
     transform(chunk, controller) {
       let parsed: Record<string, unknown>;
@@ -226,12 +227,19 @@ export function createAnthropicInboundStreamTransformer(): TransformStream<Uint8
       } else if (type === 'content_block_start') {
         const index = parsed['index'] as number;
         const block = parsed['content_block'] as Record<string, unknown>;
+        blockTypes.set(index, block['type'] as string);
         if (block['type'] === 'tool_use') {
           controller.enqueue({ type: 'tool_call_start', index, id: block['id'] as string, name: block['name'] as string });
         }
       } else if (type === 'content_block_stop') {
         const index = parsed['index'] as number;
-        controller.enqueue({ type: 'tool_call_end', index });
+        const blockType = blockTypes.get(index);
+        if (blockType === 'tool_use') {
+          controller.enqueue({ type: 'tool_call_end', index });
+        } else {
+          controller.enqueue({ type: 'content_block_end', index });
+        }
+        blockTypes.delete(index);
       } else if (type === 'message_delta') {
         const delta = parsed['delta'] as Record<string, unknown>;
         const usage = parsed['usage'] as Record<string, number> ?? {};
@@ -272,6 +280,9 @@ export function createAnthropicOutboundStreamTransformer(model: string, messageI
       } else if (event.type === 'tool_call_delta') {
         controller.enqueue(formatSSE('content_block_delta', { type: 'content_block_delta', index: event.index, delta: { type: 'input_json_delta', partial_json: event.argumentsChunk } }));
       } else if (event.type === 'tool_call_end') {
+        controller.enqueue(formatSSE('content_block_stop', { type: 'content_block_stop', index: event.index }));
+        activeBlocks.delete(event.index);
+      } else if (event.type === 'content_block_end') {
         controller.enqueue(formatSSE('content_block_stop', { type: 'content_block_stop', index: event.index }));
         activeBlocks.delete(event.index);
       } else if (event.type === 'error') {

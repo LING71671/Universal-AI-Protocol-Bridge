@@ -127,5 +127,6 @@ export type CanonicalStreamEvent =
   | { type: 'tool_call_start'; index: number; id: string; name: string }
   | { type: 'tool_call_delta'; index: number; argumentsChunk: string }
   | { type: 'tool_call_end'; index: number }
+  | { type: 'content_block_end'; index: number }
   | { type: 'message_end'; stopReason: CanonicalStopReason; outputTokens: number }
   | { type: 'error'; message: string; code?: number };

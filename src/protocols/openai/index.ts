@@ -278,7 +278,9 @@ export function serializeOpenAIResponse(canonical: CanonicalResponse): Response 
 export function createOpenAIInboundStreamTransformer(): TransformStream<Uint8Array, CanonicalStreamEvent> {
   let inputTokens = 0;
   let messageId = '';
-  let hasTextBlock = false;
+  let hasTextBlock = false;   // whether a text block ever existed at index 0
+  let textBlockClosed = false; // whether the text block has been explicitly closed
+  const activeToolCalls = new Set<number>(); // track open tool call indices
 
   const sseDecoder = createSSEDecoder();
   const mapper = new TransformStream<import('../../streaming/adapters/sse.js').SSEEvent, CanonicalStreamEvent>({
@@ -309,15 +311,17 @@ export function createOpenAIInboundStreamTransformer(): TransformStream<Uint8Arr
 
       const toolCalls = delta?.['tool_calls'] as Array<Record<string, unknown>> | undefined;
       if (toolCalls) {
+        // Close text block once before the first tool call
+        if (hasTextBlock && !textBlockClosed) {
+          controller.enqueue({ type: 'content_block_end', index: 0 });
+          textBlockClosed = true;
+        }
+
         for (const tc of toolCalls) {
-          // Offset tool call indices by 1 when a text block exists at index 0
+          // Stable offset: always +1 if text block ever existed
           const idx = (tc['index'] as number ?? 0) + (hasTextBlock ? 1 : 0);
           if (tc['id']) {
-            // Close the text block before opening the first tool call (sequential blocks)
-            if (hasTextBlock) {
-              controller.enqueue({ type: 'tool_call_end', index: 0 });
-              hasTextBlock = false;
-            }
+            activeToolCalls.add(idx);
             const fn = tc['function'] as Record<string, string> | undefined;
             controller.enqueue({ type: 'tool_call_start', index: idx, id: tc['id'] as string, name: fn?.['name'] ?? '' });
           }
@@ -329,6 +333,17 @@ export function createOpenAIInboundStreamTransformer(): TransformStream<Uint8Arr
       }
 
       if (finishReason) {
+        // Close text block if it was never closed (text-only response)
+        if (hasTextBlock && !textBlockClosed) {
+          controller.enqueue({ type: 'content_block_end', index: 0 });
+          textBlockClosed = true;
+        }
+        // Close all active tool calls before message_end
+        for (const idx of activeToolCalls) {
+          controller.enqueue({ type: 'tool_call_end', index: idx });
+        }
+        activeToolCalls.clear();
+
         const outputTokens = (parsed['usage'] as Record<string, number> | undefined)?.['completion_tokens'] ?? 0;
         controller.enqueue({ type: 'message_end', stopReason: FINISH_REASON_MAP[finishReason] ?? 'end_turn', outputTokens });
       }
@@ -339,8 +354,9 @@ export function createOpenAIInboundStreamTransformer(): TransformStream<Uint8Arr
 }
 
 export function createOpenAIOutboundStreamTransformer(model: string, messageId: string): TransformStream<CanonicalStreamEvent, Uint8Array> {
-  let blockIndex = 0;
   let inputTokens = 0;
+  let toolCallCounter = 0;
+  const canonicalToOpenAIIndex = new Map<number, number>();
 
   return new TransformStream<CanonicalStreamEvent, Uint8Array>({
     transform(event, controller) {
@@ -351,10 +367,14 @@ export function createOpenAIOutboundStreamTransformer(model: string, messageId: 
       } else if (event.type === 'text_delta') {
         controller.enqueue(formatSSE(undefined, { id: messageId, object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000), model, choices: [{ index: 0, delta: { content: event.text }, finish_reason: null }] }));
       } else if (event.type === 'tool_call_start') {
-        blockIndex = event.index;
-        controller.enqueue(formatSSE(undefined, { id: messageId, object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000), model, choices: [{ index: 0, delta: { tool_calls: [{ index: blockIndex, id: event.id, type: 'function', function: { name: event.name, arguments: '' } }] }, finish_reason: null }] }));
+        const openaiIndex = toolCallCounter++;
+        canonicalToOpenAIIndex.set(event.index, openaiIndex);
+        controller.enqueue(formatSSE(undefined, { id: messageId, object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000), model, choices: [{ index: 0, delta: { tool_calls: [{ index: openaiIndex, id: event.id, type: 'function', function: { name: event.name, arguments: '' } }] }, finish_reason: null }] }));
       } else if (event.type === 'tool_call_delta') {
-        controller.enqueue(formatSSE(undefined, { id: messageId, object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000), model, choices: [{ index: 0, delta: { tool_calls: [{ index: event.index, function: { arguments: event.argumentsChunk } }] }, finish_reason: null }] }));
+        const openaiIndex = canonicalToOpenAIIndex.get(event.index) ?? 0;
+        controller.enqueue(formatSSE(undefined, { id: messageId, object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000), model, choices: [{ index: 0, delta: { tool_calls: [{ index: openaiIndex, function: { arguments: event.argumentsChunk } }] }, finish_reason: null }] }));
+      } else if (event.type === 'content_block_end' || event.type === 'tool_call_end') {
+        // No explicit block closure in OpenAI streaming format
       } else if (event.type === 'error') {
         controller.enqueue(formatSSE(undefined, { error: { message: event.message, type: 'server_error', code: event.code ?? null } }));
         controller.enqueue(formatSSEDone());
