@@ -13,11 +13,11 @@ export function getUITemplate(workerUrl: string): string {
     --bg-body: #0c0c14;
     --bg-card: rgba(22, 22, 38, 0.7);
     --bg-input: rgba(8, 8, 16, 0.6);
-    --border: rgba(120, 80, 255, 0.12);
-    --border-hover: rgba(120, 80, 255, 0.3);
-    --accent: #7c3aed;
-    --accent-light: #a78bfa;
-    --accent-glow: rgba(124, 58, 237, 0.25);
+    --border: rgba(56, 189, 248, 0.12);
+    --border-hover: rgba(56, 189, 248, 0.3);
+    --accent: #0ea5e9;
+    --accent-light: #38bdf8;
+    --accent-glow: rgba(14, 165, 233, 0.25);
     --text: #e2e8f0;
     --text-dim: #8892a8;
     --text-muted: #5a6478;
@@ -26,6 +26,8 @@ export function getUITemplate(workerUrl: string): string {
     --radius: 14px;
     --radius-sm: 10px;
   }
+
+  html { scroll-behavior: smooth; }
 
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
@@ -41,7 +43,7 @@ export function getUITemplate(workerUrl: string): string {
     position: fixed;
     top: -40%; left: -20%;
     width: 80%; height: 80%;
-    background: radial-gradient(ellipse, rgba(124,58,237,0.08) 0%, transparent 70%);
+    background: radial-gradient(ellipse, rgba(14,165,233,0.08) 0%, transparent 70%);
     pointer-events: none;
     z-index: 0;
   }
@@ -50,12 +52,33 @@ export function getUITemplate(workerUrl: string): string {
     position: fixed;
     bottom: -30%; right: -20%;
     width: 70%; height: 70%;
-    background: radial-gradient(ellipse, rgba(59,130,246,0.06) 0%, transparent 70%);
+    background: radial-gradient(ellipse, rgba(6,182,212,0.06) 0%, transparent 70%);
     pointer-events: none;
     z-index: 0;
   }
-
   .page-wrapper { position: relative; z-index: 1; }
+
+  /* === Language Toggle === */
+  .lang-toggle {
+    position: fixed;
+    top: 1rem;
+    right: 1.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--accent-light);
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+    transition: all 0.2s;
+  }
+  .lang-toggle:hover {
+    border-color: var(--accent);
+    background: rgba(14,165,233,0.1);
+  }
 
   /* === Hero Header === */
   .hero {
@@ -71,16 +94,16 @@ export function getUITemplate(workerUrl: string): string {
   }
   .hero-icon {
     width: 48px; height: 48px;
-    background: linear-gradient(135deg, #7c3aed, #3b82f6);
+    background: linear-gradient(135deg, #0ea5e9, #06b6d4);
     border-radius: 14px;
     display: flex; align-items: center; justify-content: center;
     font-size: 1.5rem;
-    box-shadow: 0 0 30px rgba(124,58,237,0.3);
+    box-shadow: 0 0 30px rgba(14,165,233,0.3);
   }
   .hero h1 {
     font-size: 2.2rem;
     font-weight: 800;
-    background: linear-gradient(135deg, #e2e8f0 0%, #a78bfa 50%, #60a5fa 100%);
+    background: linear-gradient(135deg, #e2e8f0 0%, #38bdf8 50%, #60a5fa 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -105,8 +128,8 @@ export function getUITemplate(workerUrl: string): string {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    background: rgba(124,58,237,0.1);
-    border: 1px solid rgba(124,58,237,0.2);
+    background: rgba(14,165,233,0.1);
+    border: 1px solid rgba(14,165,233,0.2);
     color: var(--accent-light);
     padding: 0.35rem 0.85rem;
     border-radius: 100px;
@@ -117,8 +140,8 @@ export function getUITemplate(workerUrl: string): string {
   .pill-icon { font-size: 0.85rem; }
 
   /* === Container === */
-  .container { max-width: 880px; margin: 0 auto; padding: 0 1.5rem 3rem; }
-
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem 3rem; }
+  @media (min-width: 1400px) { .container { max-width: 1280px; } }
   /* === Step Flow === */
   .step {
     position: relative;
@@ -132,7 +155,7 @@ export function getUITemplate(workerUrl: string): string {
   }
   .step-num {
     width: 32px; height: 32px;
-    background: linear-gradient(135deg, var(--accent), #3b82f6);
+    background: linear-gradient(135deg, var(--accent), #06b6d4);
     border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
     font-size: 0.85rem;
@@ -169,7 +192,7 @@ export function getUITemplate(workerUrl: string): string {
   }
   .card:hover {
     border-color: var(--border-hover);
-    box-shadow: 0 4px 30px rgba(124,58,237,0.06);
+    box-shadow: 0 4px 30px rgba(14,165,233,0.06);
   }
 
   /* === Form Elements === */
@@ -206,7 +229,6 @@ export function getUITemplate(workerUrl: string): string {
 
   .auth-fields { display: none; }
   .auth-fields.active { display: block; }
-
   /* Protocol selector enhanced */
   .protocol-grid {
     display: grid;
@@ -237,6 +259,7 @@ export function getUITemplate(workerUrl: string): string {
     align-items: center;
   }
   .map-arrow { color: var(--text-muted); font-size: 1rem; text-align: center; }
+
   /* === Buttons === */
   .btn {
     padding: 0.6rem 1.2rem;
@@ -248,7 +271,7 @@ export function getUITemplate(workerUrl: string): string {
     transition: all 0.25s;
   }
   .btn-primary {
-    background: linear-gradient(135deg, #7c3aed, #6366f1);
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
     color: white;
     width: 100%;
     padding: 0.9rem;
@@ -263,21 +286,35 @@ export function getUITemplate(workerUrl: string): string {
     gap: 0.5rem;
   }
   .btn-primary:hover {
-    background: linear-gradient(135deg, #6d28d9, #4f46e5);
-    box-shadow: 0 6px 30px rgba(124,58,237,0.35);
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    box-shadow: 0 6px 30px rgba(14,165,233,0.35);
     transform: translateY(-1px);
   }
   .btn-primary:active { transform: translateY(0); }
+  .btn-primary.loading {
+    pointer-events: none;
+    opacity: 0.7;
+  }
+  .btn-primary.loading::after {
+    content: '';
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    margin-left: 0.5rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
   .btn-sm {
-    background: rgba(124,58,237,0.1);
+    background: rgba(14,165,233,0.1);
     color: var(--accent-light);
-    border: 1px dashed rgba(124,58,237,0.3);
+    border: 1px dashed rgba(14,165,233,0.3);
     padding: 0.45rem 0.9rem;
     font-size: 0.8rem;
     border-radius: var(--radius-sm);
   }
   .btn-sm:hover {
-    background: rgba(124,58,237,0.2);
+    background: rgba(14,165,233,0.2);
     border-color: var(--accent);
   }
   .btn-danger {
@@ -291,13 +328,29 @@ export function getUITemplate(workerUrl: string): string {
     transition: all 0.2s;
   }
   .btn-danger:hover { background: rgba(248,113,113,0.1); }
-
-  /* === Output Section === */
-  .output { display: none; }
-  .output.active { display: block; animation: fadeSlideUp 0.4s ease; }
-
-  @keyframes fadeSlideUp {
-    from { opacity: 0; transform: translateY(16px); }
+  /* === Output Section (smooth transition) === */
+  .output {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, max-height 0.7s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s ease;
+    pointer-events: none;
+  }
+  .output.active {
+    opacity: 1;
+    max-height: 3000px;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .output.active .step:nth-child(1) {
+    animation: fadeIn 0.4s ease 0.15s both;
+  }
+  .output.active .step:nth-child(2) {
+    animation: fadeIn 0.4s ease 0.35s both;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
@@ -316,8 +369,8 @@ export function getUITemplate(workerUrl: string): string {
   .copy-btn {
     position: absolute;
     top: 0.5rem; right: 0.5rem;
-    background: rgba(124,58,237,0.15);
-    border: 1px solid rgba(124,58,237,0.3);
+    background: rgba(14,165,233,0.15);
+    border: 1px solid rgba(14,165,233,0.3);
     color: var(--accent-light);
     padding: 0.35rem 0.7rem;
     border-radius: 8px;
@@ -325,8 +378,9 @@ export function getUITemplate(workerUrl: string): string {
     font-size: 0.75rem;
     transition: all 0.2s;
   }
-  .copy-btn:hover { background: rgba(124,58,237,0.3); }
+  .copy-btn:hover { background: rgba(14,165,233,0.3); }
   .copy-btn.copied { background: rgba(52,211,153,0.2); border-color: var(--success); color: var(--success); }
+
   /* === Tabs & Code === */
   .tabs {
     display: flex;
@@ -348,7 +402,7 @@ export function getUITemplate(workerUrl: string): string {
     font-weight: 500;
     transition: all 0.2s;
   }
-  .tab:hover { color: var(--text); background: rgba(124,58,237,0.1); }
+  .tab:hover { color: var(--text); background: rgba(14,165,233,0.1); }
   .tab.active {
     background: var(--accent);
     color: white;
@@ -370,17 +424,29 @@ export function getUITemplate(workerUrl: string): string {
   .snippet-panel { display: none; }
   .snippet-panel.active { display: block; }
 
+  /* === Error (smooth transition) === */
   .error {
     background: rgba(248,113,113,0.08);
     border: 1px solid rgba(248,113,113,0.3);
     border-radius: var(--radius-sm);
-    padding: 1rem;
     color: #fca5a5;
     font-size: 0.85rem;
-    margin-top: 1rem;
-    display: none;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    padding: 0 1rem;
+    margin-top: 0;
+    transition: opacity 0.3s ease, max-height 0.3s ease, padding 0.3s ease, margin 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
-  .error.active { display: flex; align-items: center; gap: 0.5rem; }
+  .error.active {
+    opacity: 1;
+    max-height: 100px;
+    padding: 1rem;
+    margin-top: 1rem;
+  }
 
   .hint { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.8rem; line-height: 1.5; }
 
@@ -398,12 +464,14 @@ export function getUITemplate(workerUrl: string): string {
 
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.3); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(124,58,237,0.5); }
+  ::-webkit-scrollbar-thumb { background: rgba(14,165,233,0.3); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(14,165,233,0.5); }
 </style>
 </head>
 <body>
 <div class="page-wrapper">
+  <!-- Language Toggle -->
+  <button class="lang-toggle" onclick="toggleLang()" id="langToggle">EN</button>
 
   <!-- Hero -->
   <header class="hero">
@@ -411,12 +479,12 @@ export function getUITemplate(workerUrl: string): string {
       <div class="hero-icon">&#9889;</div>
       <h1>UAIPB</h1>
     </div>
-    <p class="tagline">Universal AI Protocol Bridge &mdash; 将任意 AI API 协议互转<br>生成加密代理 URL，零存储，无需服务器</p>
+    <p class="tagline" data-i18n="tagline">Universal AI Protocol Bridge &mdash; 将任意 AI API 协议互转<br>生成加密代理 URL，零存储，无需服务器</p>
     <div class="features">
-      <span class="pill"><span class="pill-icon">&#128274;</span> AES-GCM 加密</span>
-      <span class="pill"><span class="pill-icon">&#9889;</span> 零存储架构</span>
-      <span class="pill"><span class="pill-icon">&#127760;</span> 8 种协议互转</span>
-      <span class="pill"><span class="pill-icon">&#9729;&#65039;</span> Cloudflare Workers</span>
+      <span class="pill"><span class="pill-icon">&#128274;</span> <span data-i18n="pill_encrypt">AES-GCM 加密</span></span>
+      <span class="pill"><span class="pill-icon">&#9889;</span> <span data-i18n="pill_zero">零存储架构</span></span>
+      <span class="pill"><span class="pill-icon">&#127760;</span> <span data-i18n="pill_protocols">8 种协议互转</span></span>
+      <span class="pill"><span class="pill-icon">&#9729;&#65039;</span> <span data-i18n="pill_cf">Cloudflare Workers</span></span>
     </div>
   </header>
 
@@ -426,17 +494,17 @@ export function getUITemplate(workerUrl: string): string {
       <div class="step-connector"></div>
       <div class="step-header">
         <div class="step-num">1</div>
-        <div class="step-title">选择协议</div>
+        <div class="step-title" data-i18n="step1_title">选择协议</div>
       </div>
       <div class="card">
         <div class="protocol-grid">
           <div class="field">
-            <label>&#128229; 客户端协议（你的工具发送的格式）</label>
+            <label data-i18n="label_source">&#128229; 客户端协议（你的工具发送的格式）</label>
             <select id="sourceProtocol">
               <option value="anthropic">Anthropic (Claude Code)</option>
               <option value="openai">OpenAI Chat Completions</option>
               <option value="gemini">Google Gemini</option>
-              <option value="ollama">Ollama</option>
+              <option value="ollama" data-i18n="opt_ollama">Ollama</option>
               <option value="cohere">Cohere</option>
               <option value="mistral">Mistral</option>
               <option value="azure">Azure OpenAI</option>
@@ -444,14 +512,14 @@ export function getUITemplate(workerUrl: string): string {
           </div>
           <div class="protocol-arrow">&#10132;</div>
           <div class="field">
-            <label>&#128640; 目标协议（转发到哪里）</label>
+            <label data-i18n="label_target">&#128640; 目标协议（转发到哪里）</label>
             <select id="targetProtocol">
-              <option value="openai">OpenAI / NVIDIA / DeepSeek / Groq</option>
+              <option value="openai" data-i18n="opt_openai_group">OpenAI / NVIDIA / DeepSeek / Groq</option>
               <option value="anthropic">Anthropic Claude</option>
               <option value="gemini">Google Gemini</option>
               <option value="bedrock">AWS Bedrock</option>
               <option value="azure">Azure OpenAI</option>
-              <option value="ollama">Ollama (本地)</option>
+              <option value="ollama" data-i18n="opt_ollama_local">Ollama (本地)</option>
               <option value="cohere">Cohere</option>
               <option value="mistral">Mistral</option>
             </select>
@@ -459,30 +527,29 @@ export function getUITemplate(workerUrl: string): string {
         </div>
       </div>
     </div>
-
     <!-- Step 2: API Config -->
     <div class="step">
       <div class="step-connector"></div>
       <div class="step-header">
         <div class="step-num">2</div>
-        <div class="step-title">目标 API 配置</div>
+        <div class="step-title" data-i18n="step2_title">目标 API 配置</div>
       </div>
       <div class="card">
         <div class="field">
-          <label>&#127760; 目标 API Base URL</label>
+          <label data-i18n="label_base_url">&#127760; 目标 API Base URL</label>
           <input type="url" id="targetBaseUrl" placeholder="https://integrate.api.nvidia.com/v1" />
         </div>
         <!-- Bearer token auth -->
         <div class="auth-fields" id="auth-bearer">
           <div class="field">
-            <label>&#128273; API Key</label>
+            <label data-i18n="label_api_key">&#128273; API Key</label>
             <input type="password" id="bearerToken" placeholder="sk-..." autocomplete="off" />
           </div>
         </div>
         <!-- x-api-key auth -->
         <div class="auth-fields" id="auth-x-api-key">
           <div class="field">
-            <label>&#128273; API Key (x-api-key)</label>
+            <label data-i18n="label_api_key_x">&#128273; API Key (x-api-key)</label>
             <input type="password" id="xApiKey" placeholder="sk-ant-..." autocomplete="off" />
           </div>
         </div>
@@ -490,21 +557,21 @@ export function getUITemplate(workerUrl: string): string {
         <div class="auth-fields" id="auth-aws">
           <div class="row">
             <div class="field">
-              <label>AWS Access Key ID</label>
+              <label data-i18n="label_aws_access">AWS Access Key ID</label>
               <input type="text" id="awsAccessKeyId" placeholder="AKIAIOSFODNN7EXAMPLE" autocomplete="off" />
             </div>
             <div class="field">
-              <label>AWS Secret Access Key</label>
+              <label data-i18n="label_aws_secret">AWS Secret Access Key</label>
               <input type="password" id="awsSecretAccessKey" autocomplete="off" />
             </div>
           </div>
           <div class="row">
             <div class="field">
-              <label>AWS Region</label>
+              <label data-i18n="label_aws_region">AWS Region</label>
               <input type="text" id="awsRegion" placeholder="us-east-1" />
             </div>
             <div class="field">
-              <label>Session Token (可选)</label>
+              <label data-i18n="label_aws_session">Session Token (可选)</label>
               <input type="password" id="awsSessionToken" autocomplete="off" />
             </div>
           </div>
@@ -513,38 +580,37 @@ export function getUITemplate(workerUrl: string): string {
         <div class="auth-fields" id="auth-azure">
           <div class="row">
             <div class="field">
-              <label>Azure API Key</label>
+              <label data-i18n="label_azure_key">Azure API Key</label>
               <input type="password" id="azureApiKey" autocomplete="off" />
             </div>
             <div class="field">
-              <label>API Version</label>
+              <label data-i18n="label_azure_ver">API Version</label>
               <input type="text" id="azureApiVersion" placeholder="2024-10-21" value="2024-10-21" />
             </div>
           </div>
         </div>
       </div>
     </div>
-
     <!-- Step 3: Model Mapping -->
     <div class="step">
       <div class="step-header">
         <div class="step-num">3</div>
-        <div class="step-title">模型映射（可选）</div>
+        <div class="step-title" data-i18n="step3_title">模型映射（可选）</div>
       </div>
       <div class="card">
-        <p class="hint">将客户端请求的模型名映射到目标模型名，留空则透传原始模型名</p>
+        <p class="hint" data-i18n="hint_model">将客户端请求的模型名映射到目标模型名，留空则透传原始模型名</p>
         <div id="modelMapRows"></div>
-        <button class="btn btn-sm" onclick="addModelMapRow()">+ 添加映射</button>
+        <button class="btn btn-sm" onclick="addModelMapRow()" data-i18n="btn_add_map">+ 添加映射</button>
         <div class="field" style="margin-top:1rem">
-          <label>&#127919; 强制使用模型（覆盖所有请求，可选）</label>
+          <label data-i18n="label_force_model">&#127919; 强制使用模型（覆盖所有请求，可选）</label>
           <input type="text" id="forceModel" placeholder="nvidia/llama-3.1-nemotron-70b-instruct" />
         </div>
       </div>
     </div>
 
     <!-- Generate Button -->
-    <button class="btn btn-primary" onclick="generateUrl()">
-      <span>&#9889;</span> 生成代理 URL
+    <button class="btn btn-primary" id="generateBtn" onclick="generateUrl()">
+      <span>&#9889;</span> <span data-i18n="btn_generate">生成代理 URL</span>
     </button>
     <div class="error" id="errorBox"><span>&#9888;&#65039;</span> <span id="errorText"></span></div>
 
@@ -552,12 +618,12 @@ export function getUITemplate(workerUrl: string): string {
     <div class="output" id="outputSection">
       <div class="step" style="margin-top:1.5rem">
         <div class="step-header">
-          <div class="step-num" style="background:linear-gradient(135deg,#34d399,#3b82f6)">&#10003;</div>
-          <div class="step-title" style="color:#34d399">代理 URL 已生成</div>
+          <div class="step-num" style="background:linear-gradient(135deg,#34d399,#06b6d4)">&#10003;</div>
+          <div class="step-title" style="color:#34d399" data-i18n="output_title">代理 URL 已生成</div>
         </div>
         <div class="card">
           <div class="url-box" id="proxyUrlBox">
-            <button class="copy-btn" onclick="copyText('proxyUrlBox')">复制</button>
+            <button class="copy-btn" onclick="copyText('proxyUrlBox')" data-i18n="btn_copy">复制</button>
             <span id="proxyUrlText"></span>
           </div>
         </div>
@@ -565,8 +631,8 @@ export function getUITemplate(workerUrl: string): string {
 
       <div class="step">
         <div class="step-header">
-          <div class="step-num" style="background:linear-gradient(135deg,#34d399,#3b82f6)">&#128203;</div>
-          <div class="step-title" style="color:#34d399">配置代码</div>
+          <div class="step-num" style="background:linear-gradient(135deg,#34d399,#06b6d4)">&#128203;</div>
+          <div class="step-title" style="color:#34d399" data-i18n="output_snippets">配置代码</div>
         </div>
         <div class="card">
           <div class="tabs" id="snippetTabs"></div>
@@ -579,15 +645,109 @@ export function getUITemplate(workerUrl: string): string {
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-links">
-      <a href="https://github.com" target="_blank">GitHub</a>
+      <a href="https://github.com/LING71671/Universal-AI-Protocol-Bridge" target="_blank">GitHub</a>
       <span>&middot;</span>
-      <span>Powered by Cloudflare Workers</span>
+      <span data-i18n="footer_powered">Powered by Cloudflare Workers</span>
     </div>
     <p>UAIPB &mdash; Universal AI Protocol Bridge</p>
   </footer>
 </div>
 <script>
 const WORKER_URL = '${workerUrl}';
+
+const I18N = {
+  zh: {
+    tagline: 'Universal AI Protocol Bridge &mdash; 将任意 AI API 协议互转<br>生成加密代理 URL，零存储，无需服务器',
+    pill_encrypt: 'AES-GCM 加密',
+    pill_zero: '零存储架构',
+    pill_protocols: '8 种协议互转',
+    pill_cf: 'Cloudflare Workers',
+    step1_title: '选择协议',
+    label_source: '&#128229; 客户端协议（你的工具发送的格式）',
+    label_target: '&#128640; 目标协议（转发到哪里）',
+    step2_title: '目标 API 配置',
+    label_base_url: '&#127760; 目标 API Base URL',
+    label_api_key: '&#128273; API Key',
+    label_api_key_x: '&#128273; API Key (x-api-key)',
+    label_aws_access: 'AWS Access Key ID',
+    label_aws_secret: 'AWS Secret Access Key',
+    label_aws_region: 'AWS Region',
+    label_aws_session: 'Session Token (可选)',
+    label_azure_key: 'Azure API Key',
+    label_azure_ver: 'API Version',
+    step3_title: '模型映射（可选）',
+    hint_model: '将客户端请求的模型名映射到目标模型名，留空则透传原始模型名',
+    btn_add_map: '+ 添加映射',
+    label_force_model: '&#127919; 强制使用模型（覆盖所有请求，可选）',
+    btn_generate: '生成代理 URL',
+    output_title: '代理 URL 已生成',
+    output_snippets: '配置代码',
+    tab_env: '环境变量',
+    btn_copy: '复制',
+    btn_copied: '已复制',
+    err_no_url: '请填写目标 API Base URL',
+    err_fail: '生成失败',
+    err_network: '网络错误: ',
+    footer_powered: 'Powered by Cloudflare Workers',
+    opt_ollama: 'Ollama',
+    opt_openai_group: 'OpenAI / NVIDIA / DeepSeek / Groq',
+    opt_ollama_local: 'Ollama (本地)',
+  },
+  en: {
+    tagline: 'Universal AI Protocol Bridge &mdash; Convert any AI API protocol seamlessly<br>Generate encrypted proxy URLs, zero storage, serverless',
+    pill_encrypt: 'AES-GCM Encryption',
+    pill_zero: 'Zero Storage',
+    pill_protocols: '8 Protocol Conversions',
+    pill_cf: 'Cloudflare Workers',
+    step1_title: 'Select Protocol',
+    label_source: '&#128229; Client Protocol (format your tool sends)',
+    label_target: '&#128640; Target Protocol (where to forward)',
+    step2_title: 'Target API Configuration',
+    label_base_url: '&#127760; Target API Base URL',
+    label_api_key: '&#128273; API Key',
+    label_api_key_x: '&#128273; API Key (x-api-key)',
+    label_aws_access: 'AWS Access Key ID',
+    label_aws_secret: 'AWS Secret Access Key',
+    label_aws_region: 'AWS Region',
+    label_aws_session: 'Session Token (optional)',
+    label_azure_key: 'Azure API Key',
+    label_azure_ver: 'API Version',
+    step3_title: 'Model Mapping (optional)',
+    hint_model: 'Map client model names to target model names. Leave empty to pass through original names.',
+    btn_add_map: '+ Add Mapping',
+    label_force_model: '&#127919; Force Model (override all requests, optional)',
+    btn_generate: 'Generate Proxy URL',
+    output_title: 'Proxy URL Generated',
+    output_snippets: 'Config Snippets',
+    tab_env: 'Env Variables',
+    btn_copy: 'Copy',
+    btn_copied: 'Copied',
+    err_no_url: 'Please enter the target API Base URL',
+    err_fail: 'Generation failed',
+    err_network: 'Network error: ',
+    footer_powered: 'Powered by Cloudflare Workers',
+    opt_ollama: 'Ollama',
+    opt_openai_group: 'OpenAI / NVIDIA / DeepSeek / Groq',
+    opt_ollama_local: 'Ollama (Local)',
+  }
+};
+
+let currentLang = localStorage.getItem('uaipb-lang') || 'zh';
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('uaipb-lang', lang);
+  document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+  const dict = I18N[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (dict[key] !== undefined) el.innerHTML = dict[key];
+  });
+  document.getElementById('langToggle').textContent = lang === 'zh' ? 'EN' : '中文';
+}
+
+function toggleLang() {
+  setLang(currentLang === 'zh' ? 'en' : 'zh');
+}
 
 const AUTH_MAP = {
   openai: 'bearer', mistral: 'bearer', cohere: 'bearer', gemini: 'bearer',
@@ -662,9 +822,10 @@ function getAuth() {
 }
 
 async function generateUrl() {
+  const btn = document.getElementById('generateBtn');
   const errorBox = document.getElementById('errorBox');
-  const errorText = document.getElementById('errorText');
   errorBox.classList.remove('active');
+  btn.classList.add('loading');
 
   const config = {
     version: 1,
@@ -676,7 +837,11 @@ async function generateUrl() {
     forceModel: document.getElementById('forceModel').value.trim() || undefined,
   };
 
-  if (!config.targetBaseUrl) { showError('请填写目标 API Base URL'); return; }
+  if (!config.targetBaseUrl) {
+    showError(I18N[currentLang].err_no_url);
+    btn.classList.remove('loading');
+    return;
+  }
 
   try {
     const res = await fetch(WORKER_URL + '/api/generate-url', {
@@ -685,11 +850,16 @@ async function generateUrl() {
       body: JSON.stringify(config),
     });
     const data = await res.json();
-    if (!res.ok) { showError(data.error || '生成失败'); return; }
+    if (!res.ok) {
+      showError(data.error || I18N[currentLang].err_fail);
+      btn.classList.remove('loading');
+      return;
+    }
     showOutput(data.proxyUrl, config.sourceProtocol, data.snippets);
   } catch (e) {
-    showError('网络错误: ' + e.message);
+    showError(I18N[currentLang].err_network + e.message);
   }
+  btn.classList.remove('loading');
 }
 
 function showError(msg) {
@@ -707,11 +877,12 @@ function showOutput(proxyUrl, sourceProtocol, snippets) {
   tabsEl.innerHTML = '';
   panelsEl.innerHTML = '';
 
+  const dict = I18N[currentLang];
   const tabs = [];
   if (snippets.claudeCode) tabs.push({ id: 'claude', label: 'Claude Code', content: snippets.claudeCode });
   if (snippets.openaiPython) tabs.push({ id: 'python', label: 'Python', content: snippets.openaiPython });
   if (snippets.openaiTS) tabs.push({ id: 'ts', label: 'TypeScript', content: snippets.openaiTS });
-  tabs.push({ id: 'env', label: '环境变量', content: snippets.envBlock });
+  tabs.push({ id: 'env', label: dict.tab_env, content: snippets.envBlock });
   tabs.push({ id: 'curl', label: 'curl', content: snippets.curlExample });
 
   tabs.forEach((tab, i) => {
@@ -729,11 +900,13 @@ function showOutput(proxyUrl, sourceProtocol, snippets) {
     const panel = document.createElement('div');
     panel.className = 'snippet-panel' + (i === 0 ? ' active' : '');
     panel.id = 'panel-' + tab.id;
-    panel.innerHTML = \`<div class="code-block" id="code-\${tab.id}">\${escapeHtml(tab.content)}<button class="copy-btn" onclick="copyText('code-\${tab.id}')">复制</button></div>\`;
+    panel.innerHTML = \`<div class="code-block" id="code-\${tab.id}">\${escapeHtml(tab.content)}<button class="copy-btn" onclick="copyText('code-\${tab.id}')">\${dict.btn_copy}</button></div>\`;
     panelsEl.appendChild(panel);
   });
 
-  document.getElementById('outputSection').scrollIntoView({ behavior: 'smooth' });
+  setTimeout(() => {
+    document.getElementById('outputSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
 }
 
 function escapeHtml(str) {
@@ -742,16 +915,21 @@ function escapeHtml(str) {
 
 async function copyText(id) {
   const el = document.getElementById(id);
-  const text = el.querySelector('span')?.textContent || el.textContent.replace('复制','').trim();
+  const span = el.querySelector('span');
+  const dict = I18N[currentLang];
+  const text = span ? span.textContent : el.textContent.replace(dict.btn_copy,'').replace(I18N.zh.btn_copy,'').replace(I18N.en.btn_copy,'').trim();
   await navigator.clipboard.writeText(text);
   const btn = el.querySelector('.copy-btn');
   if (btn) {
     const orig = btn.textContent;
-    btn.textContent = '已复制';
+    btn.textContent = dict.btn_copied;
     btn.classList.add('copied');
     setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1500);
   }
 }
+
+// Initialize language
+setLang(currentLang);
 </script>
 </body>
 </html>`;
