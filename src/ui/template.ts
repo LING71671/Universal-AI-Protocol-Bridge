@@ -597,15 +597,16 @@ export function getUITemplate(workerUrl: string): string {
         <div class="step-num">3</div>
         <div class="step-title" data-i18n="step3_title">模型映射（可选）</div>
       </div>
-      <div class="card">
-        <p class="hint" data-i18n="hint_model">将客户端请求的模型名映射到目标模型名，留空则透传原始模型名</p>
-        <div id="modelMapRows"></div>
-        <button class="btn btn-sm" onclick="addModelMapRow()" data-i18n="btn_add_map">+ 添加映射</button>
-        <div class="field" style="margin-top:1rem">
-          <label data-i18n="label_force_model">&#127919; 强制使用模型（覆盖所有请求，可选）</label>
-          <input type="text" id="forceModel" placeholder="nvidia/llama-3.1-nemotron-70b-instruct" />
-        </div>
-      </div>
+<div class="card">
+<p class="hint" data-i18n="hint_model">将客户端请求的模型名映射到目标模型名，留空则透传原始模型名</p>
+<div id="modelMapRows"></div>
+<button class="btn btn-sm" onclick="addModelMapRow()" data-i18n="btn_add_map">+ 添加映射</button>
+<div class="field" style="margin-top:1rem">
+<label data-i18n="label_force_model">&#127919; 强制使用模型（覆盖所有请求，可选）</label>
+<input type="text" id="forceModel" placeholder="gpt-4o / claude-sonnet-4-6 / deepseek-chat" />
+<p class="hint" style="margin-top:0.5rem" data-i18n="hint_force_model">填目标服务商的模型名。NVIDIA NIM 需要填 "nvidia/模型名"，其他服务商直接填模型名即可。</p>
+</div>
+</div>
     </div>
 
     <!-- Generate Button -->
@@ -675,11 +676,12 @@ const I18N = {
     label_aws_session: 'Session Token (可选)',
     label_azure_key: 'Azure API Key',
     label_azure_ver: 'API Version',
-    step3_title: '模型映射（可选）',
-    hint_model: '将客户端请求的模型名映射到目标模型名，留空则透传原始模型名',
-    btn_add_map: '+ 添加映射',
-    label_force_model: '&#127919; 强制使用模型（覆盖所有请求，可选）',
-    btn_generate: '生成代理 URL',
+step3_title: '模型映射（可选）',
+hint_model: '将客户端请求的模型名映射到目标模型名，留空则透传原始模型名',
+btn_add_map: '+ 添加映射',
+label_force_model: '&#127919; 强制使用模型（覆盖所有请求，可选）',
+hint_force_model: '填目标服务商的模型名。NVIDIA NIM 需要填 "nvidia/模型名"，其他服务商直接填模型名即可。',
+btn_generate: '生成代理 URL',
     output_title: '代理 URL 已生成',
     output_snippets: '配置代码',
     tab_env: '环境变量',
@@ -712,11 +714,12 @@ const I18N = {
     label_aws_session: 'Session Token (optional)',
     label_azure_key: 'Azure API Key',
     label_azure_ver: 'API Version',
-    step3_title: 'Model Mapping (optional)',
-    hint_model: 'Map client model names to target model names. Leave empty to pass through original names.',
-    btn_add_map: '+ Add Mapping',
-    label_force_model: '&#127919; Force Model (override all requests, optional)',
-    btn_generate: 'Generate Proxy URL',
+step3_title: 'Model Mapping (optional)',
+hint_model: 'Map client model names to target model names. Leave empty to pass through original names.',
+btn_add_map: '+ Add Mapping',
+label_force_model: '&#127919; Force Model (override all requests, optional)',
+hint_force_model: 'Enter the target provider\'s model name. For NVIDIA NIM, use "nvidia/model-name" format. For others, just use the model name.',
+btn_generate: 'Generate Proxy URL',
     output_title: 'Proxy URL Generated',
     output_snippets: 'Config Snippets',
     tab_env: 'Env Variables',
@@ -762,21 +765,35 @@ const DEFAULT_URLS = {
   azure: 'https://YOUR-RESOURCE.openai.azure.com',
   ollama: 'http://localhost:11434',
   cohere: 'https://api.cohere.com',
-  mistral: 'https://api.mistral.ai/v1',
+mistral: 'https://api.mistral.ai/v1',
+};
+
+const MODEL_PLACEHOLDERS = {
+openai: 'gpt-4o / gpt-4o-mini / o1-preview',
+anthropic: 'claude-sonnet-4-6 / claude-opus-4-6 / claude-haiku-4-5',
+gemini: 'gemini-2.0-flash / gemini-1.5-pro',
+bedrock: 'us.anthropic.claude-sonnet-4-6 / meta.llama3-70b-instruct',
+azure: 'gpt-4o / gpt-4-turbo (部署名)',
+ollama: 'llama3.2 / mistral / qwen2.5',
+cohere: 'command-r-plus / command-r',
+mistral: 'mistral-large-latest / codestral-latest',
 };
 
 document.getElementById('targetProtocol').addEventListener('change', updateAuthFields);
 updateAuthFields();
 
 function updateAuthFields() {
-  const target = document.getElementById('targetProtocol').value;
-  const authType = AUTH_MAP[target] || 'bearer';
-  document.querySelectorAll('.auth-fields').forEach(el => el.classList.remove('active'));
-  if (authType !== 'none') {
-    document.getElementById('auth-' + authType)?.classList.add('active');
-  }
-  const urlInput = document.getElementById('targetBaseUrl');
-  if (!urlInput.value) urlInput.placeholder = DEFAULT_URLS[target] || '';
+const target = document.getElementById('targetProtocol').value;
+const authType = AUTH_MAP[target] || 'bearer';
+document.querySelectorAll('.auth-fields').forEach(el => el.classList.remove('active'));
+if (authType !== 'none') {
+document.getElementById('auth-' + authType)?.classList.add('active');
+}
+const urlInput = document.getElementById('targetBaseUrl');
+if (!urlInput.value) urlInput.placeholder = DEFAULT_URLS[target] || '';
+// Update forceModel placeholder based on target protocol
+const forceModelInput = document.getElementById('forceModel');
+forceModelInput.placeholder = MODEL_PLACEHOLDERS[target] || 'model-name';
 }
 
 function addModelMapRow(from = '', to = '') {
