@@ -814,24 +814,49 @@ const forceModelInput = document.getElementById('forceModel');
 forceModelInput.placeholder = MODEL_PLACEHOLDERS[target] || 'model-name';
 }
 
-function addModelMapRow(from = '', to = '') {
-  const container = document.getElementById('modelMapRows');
-  const row = document.createElement('div');
+function addModelMapRow(from, to) {
+  if (from === undefined) from = '';
+  if (to === undefined) to = '';
+  var container = document.getElementById('modelMapRows');
+  if (!container) return;
+  var row = document.createElement('div');
   row.className = 'model-map-row';
-  row.innerHTML = \`
-    <input type="text" placeholder="claude-sonnet-4-6" value="\${from}" class="map-from" />
-    <span class="map-arrow">&#10132;</span>
-    <input type="text" placeholder="gpt-4o" value="\${to}" class="map-to" />
-    <button class="btn-danger" onclick="this.parentElement.remove()">&#10005;</button>
-  \`;
+
+  var input1 = document.createElement('input');
+  input1.type = 'text';
+  input1.placeholder = 'claude-sonnet-4-6';
+  input1.value = from;
+  input1.className = 'map-from';
+
+  var arrow = document.createElement('span');
+  arrow.className = 'map-arrow';
+  arrow.innerHTML = '&#10132;';
+
+  var input2 = document.createElement('input');
+  input2.type = 'text';
+  input2.placeholder = 'gpt-4o';
+  input2.value = to;
+  input2.className = 'map-to';
+
+  var delBtn = document.createElement('button');
+  delBtn.className = 'btn-danger';
+  delBtn.innerHTML = '&#10005;';
+  delBtn.onclick = function() { row.remove(); };
+
+  row.appendChild(input1);
+  row.appendChild(arrow);
+  row.appendChild(input2);
+  row.appendChild(delBtn);
   container.appendChild(row);
 }
 
 function getModelMap() {
-  const map = {};
-  document.querySelectorAll('.model-map-row').forEach(row => {
-    const from = row.querySelector('.map-from').value.trim();
-    const to = row.querySelector('.map-to').value.trim();
+  var map = {};
+  document.querySelectorAll('.model-map-row').forEach(function(row) {
+    var fromEl = row.querySelector('.map-from');
+    var toEl = row.querySelector('.map-to');
+    var from = fromEl ? fromEl.value.trim() : '';
+    var to = toEl ? toEl.value.trim() : '';
     if (from && to) map[from] = to;
   });
   return Object.keys(map).length ? map : undefined;
