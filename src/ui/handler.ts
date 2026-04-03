@@ -1,6 +1,7 @@
 import type { Env } from '../config/types.js';
 import type { ProxyConfig } from '../config/types.js';
 import { encryptConfig } from '../config/crypto.js';
+import { ErrorCode, createErrorResponse } from '../config/errors.js';
 import { generateConfigSnippets } from './config-generator.js';
 import { getUITemplate } from './template.js';
 
@@ -32,12 +33,12 @@ async function handleGenerateUrl(request: Request, env: Env): Promise<Response> 
   try {
     config = await request.json() as ProxyConfig;
   } catch {
-    return jsonError('Invalid JSON', 400);
+    return createErrorResponse(ErrorCode.INVALID_JSON, 'Invalid JSON');
   }
 
-  if (!config.targetBaseUrl) return jsonError('targetBaseUrl is required', 400);
-  if (!config.sourceProtocol) return jsonError('sourceProtocol is required', 400);
-  if (!config.targetProtocol) return jsonError('targetProtocol is required', 400);
+  if (!config.targetBaseUrl) return createErrorResponse(ErrorCode.INVALID_JSON, 'targetBaseUrl is required');
+  if (!config.sourceProtocol) return createErrorResponse(ErrorCode.INVALID_JSON, 'sourceProtocol is required');
+  if (!config.targetProtocol) return createErrorResponse(ErrorCode.INVALID_JSON, 'targetProtocol is required');
   if (config.version !== 1) config.version = 1;
 
   // Remove trailing slash from base URL
@@ -50,13 +51,6 @@ async function handleGenerateUrl(request: Request, env: Env): Promise<Response> 
   const snippets = generateConfigSnippets(proxyUrl, config.sourceProtocol);
 
   return new Response(JSON.stringify({ proxyUrl, snippets }), {
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
-
-function jsonError(message: string, status: number): Response {
-  return new Response(JSON.stringify({ error: message }), {
-    status,
     headers: { 'Content-Type': 'application/json' },
   });
 }
