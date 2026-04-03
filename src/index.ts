@@ -1,5 +1,6 @@
 import type { Env } from './config/types.js';
 import { decryptConfig } from './config/crypto.js';
+import { ErrorCode, createErrorResponse } from './config/errors.js';
 import { handleUIRequest } from './ui/handler.js';
 import { handleProxyRequest } from './proxy/handler.js';
 import { registerAdapter } from './protocols/registry.js';
@@ -51,14 +52,14 @@ export default {
       const parts = path.slice(1).split('/'); // ['proxy', token, ...rest]
       const token = parts[1];
       if (!token) {
-        return jsonError('Missing proxy token', 400);
+        return addCORSHeaders(createErrorResponse(ErrorCode.MISSING_TOKEN, 'Missing proxy token'));
       }
 
       let config;
       try {
         config = await decryptConfig(token, env.WORKER_SECRET);
       } catch {
-        return jsonError('Invalid or expired proxy token', 401);
+        return addCORSHeaders(createErrorResponse(ErrorCode.INVALID_TOKEN, 'Invalid or expired proxy token'));
       }
 
       const upstreamPath = '/' + parts.slice(2).join('/');
@@ -67,8 +68,11 @@ export default {
         const response = await handleProxyRequest(request, config, upstreamPath);
         return addCORSHeaders(response);
       } catch (err) {
+        if (err instanceof Error && 'code' in err && err.code === ErrorCode.RETRY_EXHAUSTED) {
+          return addCORSHeaders(createErrorResponse(ErrorCode.RETRY_EXHAUSTED, err.message));
+        }
         const message = err instanceof Error ? err.message : 'Internal error';
-        return addCORSHeaders(jsonError(message, 500));
+        return addCORSHeaders(createErrorResponse(ErrorCode.PROXY_ERROR, message));
       }
     }
 
@@ -82,9 +86,3 @@ function addCORSHeaders(response: Response): Response {
   return new Response(response.body, { status: response.status, headers });
 }
 
-function jsonError(message: string, status: number): Response {
-  return new Response(JSON.stringify({ error: message }), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}

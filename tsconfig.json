@@ -7,8 +7,9 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "types": ["@cloudflare/workers-types"],
+    "skipLibCheck": true,
     "outDir": "./dist",
     "rootDir": "./src"
   },
-  "include": ["src/**/*", "test/**/*"]
+  "include": ["src/**/*"]
 }

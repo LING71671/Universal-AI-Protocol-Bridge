@@ -485,6 +485,9 @@ export function getUITemplate(workerUrl: string): string {
       <span class="pill"><span class="pill-icon">&#9889;</span> <span data-i18n="pill_zero">零存储架构</span></span>
       <span class="pill"><span class="pill-icon">&#127760;</span> <span data-i18n="pill_protocols">8 种协议互转</span></span>
       <span class="pill"><span class="pill-icon">&#9729;&#65039;</span> <span data-i18n="pill_cf">Cloudflare Workers</span></span>
+      <span class="pill"><span class="pill-icon">&#128260;</span> <span data-i18n="pill_retry">自动重试</span></span>
+      <span class="pill"><span class="pill-icon">&#128279;</span> <span data-i18n="pill_wildcard">通配符映射</span></span>
+      <span class="pill"><span class="pill-icon">&#128273;</span> <span data-i18n="pill_multikey">多 Key 轮询</span></span>
     </div>
   </header>
 
@@ -544,6 +547,11 @@ export function getUITemplate(workerUrl: string): string {
           <div class="field">
             <label data-i18n="label_api_key">&#128273; API Key</label>
             <input type="password" id="bearerToken" placeholder="sk-..." autocomplete="off" />
+          </div>
+          <div class="field">
+            <label data-i18n="label_multi_keys">&#128273; 多 Key 轮询（可选，每行一个）</label>
+            <textarea id="bearerKeys" rows="3" placeholder="sk-key1&#10;sk-key2&#10;sk-key3" style="width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.65rem 0.9rem;color:var(--text);font-size:0.85rem;font-family:'SF Mono','Fira Code',monospace;resize:vertical;outline:none;backdrop-filter:blur(4px);" onfocus="this.style.borderColor='var(--accent)';this.style.boxShadow='0 0 0 3px var(--accent-glow)'" onblur="this.style.borderColor='var(--border)';this.style.boxShadow='none'"></textarea>
+            <p class="hint" style="margin-top:0.3rem" data-i18n="hint_multi_keys">填写多个 Key 可自动轮询，分散 Rate Limit 压力</p>
           </div>
         </div>
         <!-- x-api-key auth -->
@@ -663,6 +671,9 @@ const I18N = {
     pill_zero: '零存储架构',
     pill_protocols: '8 种协议互转',
     pill_cf: 'Cloudflare Workers',
+    pill_retry: '自动重试',
+    pill_wildcard: '通配符映射',
+    pill_multikey: '多 Key 轮询',
     step1_title: '选择协议',
     label_source: '&#128229; 客户端协议（你的工具发送的格式）',
     label_target: '&#128640; 目标协议（转发到哪里）',
@@ -694,6 +705,8 @@ btn_generate: '生成代理 URL',
     opt_ollama: 'Ollama',
     opt_openai_group: 'OpenAI / NVIDIA / DeepSeek / Groq',
     opt_ollama_local: 'Ollama (本地)',
+    label_multi_keys: '&#128273; 多 Key 轮询（可选，每行一个）',
+    hint_multi_keys: '填写多个 Key 可自动轮询，分散 Rate Limit 压力',
   },
   en: {
     tagline: 'Universal AI Protocol Bridge &mdash; Convert any AI API protocol seamlessly<br>Generate encrypted proxy URLs, zero storage, serverless',
@@ -701,6 +714,9 @@ btn_generate: '生成代理 URL',
     pill_zero: 'Zero Storage',
     pill_protocols: '8 Protocol Conversions',
     pill_cf: 'Cloudflare Workers',
+    pill_retry: 'Auto Retry',
+    pill_wildcard: 'Wildcard Mapping',
+    pill_multikey: 'Multi-Key Rotation',
     step1_title: 'Select Protocol',
     label_source: '&#128229; Client Protocol (format your tool sends)',
     label_target: '&#128640; Target Protocol (where to forward)',
@@ -732,6 +748,8 @@ btn_generate: 'Generate Proxy URL',
     opt_ollama: 'Ollama',
     opt_openai_group: 'OpenAI / NVIDIA / DeepSeek / Groq',
     opt_ollama_local: 'Ollama (Local)',
+    label_multi_keys: '&#128273; Multi-Key Rotation (optional, one per line)',
+    hint_multi_keys: 'Add multiple keys to enable round-robin, distributing rate limit pressure',
   }
 };
 
@@ -821,7 +839,15 @@ function getModelMap() {
 function getAuth() {
   const target = document.getElementById('targetProtocol').value;
   const authType = AUTH_MAP[target] || 'bearer';
-  if (authType === 'bearer') return { type: 'bearer', token: document.getElementById('bearerToken').value.trim() };
+  if (authType === 'bearer') {
+    const token = document.getElementById('bearerToken').value.trim();
+    const keysRaw = document.getElementById('bearerKeys')?.value.trim() || '';
+    const keys = keysRaw ? keysRaw.split('\n').map(k => k.trim()).filter(k => k.length > 0) : [];
+    if (keys.length > 0) {
+      return { type: 'bearer', token: token || keys[0], keys };
+    }
+    return { type: 'bearer', token };
+  }
   if (authType === 'x-api-key') return { type: 'x-api-key', key: document.getElementById('xApiKey').value.trim() };
   if (authType === 'aws') return {
     type: 'aws',

@@ -18,7 +18,14 @@ async function sha256Hex(data: string): Promise<string> {
 }
 
 async function hmacRaw(key: ArrayBuffer | Uint8Array, data: string): Promise<ArrayBuffer> {
-  const cryptoKey = await crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  // Cast to BufferSource to satisfy WebCrypto typings and avoid overload ambiguity
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    key as BufferSource,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
   return crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(data));
 }
 

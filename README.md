@@ -23,7 +23,18 @@
 - **流式传输 (Streaming) 优化**: 针对 Server-Sent Events (SSE) 和 NDJSON 进行了深度优化，全程支持流式管道化输出，确保极致的响应速度。
 - **智能模型映射 (Model Mapping)**:
   - 支持别名配置（推荐）（例如将 `gpt-4` 映射到 `claude-3-5-sonnet-latest`）
+  - 支持通配符映射（例如 `claude-*` → `gpt-4-*`，自动保留后缀）
   - 支持强制模型（Force Model）模式，确保请求始终打到预期的模型
+- **自动重试 (Auto Retry)**:
+  - 遇到 429 (Rate Limit) 或 5xx 错误时自动重试，最多 3 次
+  - 使用指数退避策略（1s → 2s → 4s），避免触发上游限流
+  - 支持 `Retry-After` 响应头，优先使用服务端指定的等待时间
+- **多 Key 轮询 (Multi-Key Rotation)**:
+  - 支持配置多个 API Key，自动轮询使用，分散单 Key 的 Rate Limit 压力
+  - 在模型映射中配置 `keys` 数组即可启用
+- **结构化错误响应**:
+  - 统一错误格式：`{ error_code, message, retry_after? }`
+  - 机器可读的错误码（如 `RATE_LIMITED`, `RETRY_EXHAUSTED`）便于客户端处理
 - **安全加固 (Security First)**:
   - 使用 Web Crypto API 实现 AES-GCM 工业级加密
   - 代理配置被封装在加密 Token 中，不在 Worker 侧存储任何敏感 Key
@@ -197,6 +208,18 @@ npm run deploy
 |---------------|---------------|
 | `claude-sonnet-4-6` | `gpt-4o-mini` |
 | `claude-opus-4-6` | `gpt-4o` |
+| `claude-*` | `gpt-4-*` |
+
+**通配符映射**:
+
+支持使用 `*` 作为通配符，自动保留匹配部分的后缀。例如：
+
+| 通配符模式 | 请求模型 | 实际映射到 |
+|-----------|---------|-----------|
+| `claude-*` → `gpt-4-*` | `claude-sonnet-4-6` | `gpt-4-sonnet-4-6` |
+| `claude-*-v*` → `gpt-4-*-v*` | `claude-sonnet-v2` | `gpt-4-sonnet-v2` |
+
+> 💡 通配符 `*` 匹配一个或多个字符，精确匹配优先级高于通配符。
 
 **内置默认映射**:
 
@@ -217,6 +240,20 @@ npm run deploy
 | `claude-haiku-4-5` | `gemini-1.5-flash` |
 
 **强制模型**: 如果需要所有请求都使用同一个模型（忽略客户端请求的模型名），填写"强制使用模型"字段。
+
+**多 Key 轮询**: 如果配置了多个 API Key，系统会自动轮询使用，分散 Rate Limit 压力。在生成代理 URL 后，通过 API 直接生成 Token 时可在 `auth` 中使用 `keys` 数组：
+
+```json
+{
+  "auth": {
+    "type": "bearer",
+    "token": "sk-key1",
+    "keys": ["sk-key1", "sk-key2", "sk-key3"]
+  }
+}
+```
+
+> 💡 每次请求会自动从 `keys` 数组中选择一个 Key 使用，无需额外配置。
 
 **特殊处理**: Claude Code 发送的模型名可能带有 `[1m]` 后缀（表示 1M 上下文），如 `claude-sonnet-4-6[1m]`。系统会自动去除后缀后再进行映射。
 

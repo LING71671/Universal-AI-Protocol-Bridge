@@ -5,10 +5,11 @@ export type { ProtocolId };
 // ── Authentication ────────────────────────────────────────────────────────────
 
 export type ProtocolAuth =
-  | { type: 'bearer'; token: string }
-  | { type: 'x-api-key'; key: string }
+  | { type: 'bearer'; token: string; keys?: string[] }
+  | { type: 'x-api-key'; key: string; keys?: string[] }
   | { type: 'aws'; accessKeyId: string; secretAccessKey: string; sessionToken?: string; region: string }
   | { type: 'azure'; apiKey: string; apiVersion: string }
+  | { type: 'multiKey'; keys: string[] }
   | { type: 'none' };
 
 // ── Proxy Config (embedded in encrypted URL token) ────────────────────────────

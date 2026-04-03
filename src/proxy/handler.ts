@@ -1,8 +1,11 @@
 import type { ProxyConfig } from '../config/types.js';
+import { ErrorCode, createErrorResponse } from '../config/errors.js';
 import { getAdapter } from '../protocols/registry.js';
 import { createStreamingResponse } from '../streaming/pipeline.js';
 import { resolveModel } from './model-map.js';
 import { signRequest } from '../protocols/bedrock/sigv4.js';
+import { getEffectiveAuth } from './key-rotation.js';
+import { withRetry } from './retry.js';
 
 export async function handleProxyRequest(
   request: Request,
@@ -12,22 +15,25 @@ export async function handleProxyRequest(
   const sourceAdapter = getAdapter(config.sourceProtocol);
   const targetAdapter = getAdapter(config.targetProtocol);
 
+  // Apply key rotation: select effective auth from keys array if configured
+  const effectiveAuth = getEffectiveAuth(config.auth);
+
   // Parse incoming request body
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    return createErrorResponse(ErrorCode.INVALID_JSON, 'Invalid JSON body');
   }
 
   // Translate to canonical format
   const canonical = await sourceAdapter.parseRequest(body, request.headers, upstreamPath);
 
-  // Apply model mapping
+  // Apply model mapping (with wildcard support)
   canonical.model = resolveModel(canonical.model, config.targetProtocol, config.modelMap, config.forceModel);
 
-  // Serialize to target format
-  const serialized = await targetAdapter.serializeRequest(canonical, config);
+  // Serialize to target format with effective auth
+  const serialized = await targetAdapter.serializeRequest(canonical, { ...config, auth: effectiveAuth });
 
   // Handle Bedrock SigV4 signing (special case: signing requires async crypto)
   if (config.targetProtocol === 'bedrock') {
@@ -45,16 +51,34 @@ export async function handleProxyRequest(
     }
   }
 
-  // Forward to upstream
-  const upstreamResponse = await fetch(serialized.url, {
-    method: 'POST',
-    headers: serialized.headers,
-    body: JSON.stringify(serialized.body),
-  });
+  // Forward to upstream with retry
+  let upstreamResponse: Response;
+  try {
+    upstreamResponse = await withRetry(() =>
+      fetch(serialized.url, {
+        method: 'POST',
+        headers: serialized.headers,
+        body: JSON.stringify(serialized.body),
+      })
+    );
+  } catch (err) {
+    if (err instanceof Error && 'code' in err && err.code === ErrorCode.RETRY_EXHAUSTED) {
+      throw err; // Re-throw to be caught by index.ts
+    }
+    throw new Error(err instanceof Error ? err.message : 'Upstream request failed');
+  }
 
   if (!upstreamResponse.ok) {
     const errBody = await upstreamResponse.text();
-    return new Response(errBody, { status: upstreamResponse.status, headers: { 'Content-Type': 'application/json' } });
+    if (upstreamResponse.status === 429) {
+      const retryAfter = upstreamResponse.headers.get('Retry-After');
+      return createErrorResponse(
+        ErrorCode.RATE_LIMITED,
+        `Upstream rate limited: ${errBody}`,
+        retryAfter ? parseInt(retryAfter, 10) : undefined,
+      );
+    }
+    return createErrorResponse(ErrorCode.UPSTREAM_ERROR, `Upstream error ${upstreamResponse.status}: ${errBody}`);
   }
 
   // Handle streaming
